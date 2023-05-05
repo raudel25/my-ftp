@@ -3,7 +3,7 @@
 
 #include "server.h"
 
-void loop(int port) {
+void loop(char *path,int port) {
 
     int sock1 = create_server(port);
 
@@ -11,13 +11,13 @@ void loop(int port) {
     int len = sizeof(client);
 
     int sock2 = accept(sock1, (struct sockaddr *) &client, (socklen_t *) &len);
-    handle_client(sock2);
+    handle_client(sock2,path);
 }
 
 int main(int argn, char *argv[]) {
 
 
-    loop(5000);
+    loop("/home/raudel",5000);
 
     return 0;
 }

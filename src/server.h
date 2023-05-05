@@ -7,6 +7,6 @@
 
 int create_server(int port);
 
-void handle_client(int sock);
+void handle_client(int sock, char *path);
 
 #endif //MY_FTP_SERVER_H

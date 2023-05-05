@@ -48,10 +48,11 @@ int create_server(int port) {
     return sock1;
 }
 
-void handle_client(int sock) {
+void handle_client(int sock, char *path) {
     char *response;
-    response = render(sock);
+    response = render(path);
     send(sock, response, strlen(response), 0);
+    free(response);
 
     char buffer[1024];
 

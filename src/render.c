@@ -1,5 +1,5 @@
 //
-// Created by raude on 5/5/2023.
+// Created by raudel on 5/5/2023.
 //
 #include <string.h>
 #include <stdlib.h>
@@ -20,10 +20,12 @@ char *build_table(char *path) {
     if (d) {
         while ((dir = readdir(d)) != NULL) {
 
-            strcat(html_response, "<tr><th>");
+            strcat(html_response, "<tr><th><a href=\"\\");
+            strcat(html_response, dir->d_name);
+            strcat(html_response, "\">");
             strcat(html_response, dir->d_name);
 
-            strcat(html_response, "</th><th>");
+            strcat(html_response, "</a></th><th>");
 
             char aux[64];
             if (dir->d_ino / 1024 > 0) {
@@ -37,7 +39,6 @@ char *build_table(char *path) {
             }
 
             strcat(html_response, "</th></tr>");
-
         }
         closedir(d);
     }
@@ -58,4 +59,3 @@ char *render(char *path) {
 
     return response;
 }
-

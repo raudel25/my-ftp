@@ -1,23 +1,23 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #include "server.h"
 
-void loop(char *path,int port) {
+_Noreturn void loop(int port) {
 
     int sock1 = create_server(port);
 
-    struct sockaddr_in client;
-    int len = sizeof(client);
+    while (1) {
+        pthread_t thread;
+        pthread_create(&thread, NULL, handle_client, &sock1);
 
-    int sock2 = accept(sock1, (struct sockaddr *) &client, (socklen_t *) &len);
-    handle_client(sock2,path);
+        pthread_join(thread, NULL);
+    }
 }
 
 int main(int argn, char *argv[]) {
 
+    root_path = "/home/raudel";
+    loop(3000);
 
-    loop("/home/raudel",5000);
-
-    return 0;
 }

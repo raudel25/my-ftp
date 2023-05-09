@@ -7,9 +7,11 @@
 #include <dirent.h>
 #include <pwd.h>
 
+#include "utils.h"
+
 #define MAX_SIZE_BUFFER 4096
 
-char *build_table(char *path) {
+char *build_table(char *path, char *root_path) {
     char *html_response = (char *) malloc(MAX_SIZE_BUFFER);
     strcpy(html_response, "<html><body><table><tr><th>Name</th><th>Size</th></tr>");
 
@@ -20,8 +22,15 @@ char *build_table(char *path) {
     if (d) {
         while ((dir = readdir(d)) != NULL) {
 
-            strcat(html_response, "<tr><th><a href=\"\\");
+            strcat(html_response, "<tr><th><a href=\"");
+
+            char *redirect = path_server_to_browser(path, root_path);
+            strcat(html_response, redirect);
+
+            strcat(html_response, "/");
             strcat(html_response, dir->d_name);
+            free(redirect);
+
             strcat(html_response, "\">");
             strcat(html_response, dir->d_name);
 
@@ -48,11 +57,12 @@ char *build_table(char *path) {
     return html_response;
 }
 
-char *render(char *path) {
+char *render(char *path, char *root_path) {
 
-    char *html_response = build_table(path);
+    char *html_response = build_table(path, root_path);
     char *http_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
     char *response = malloc(strlen(http_header) + strlen(html_response) + 1);
+
     strcpy(response, http_header);
     strcat(response, html_response);
     free(html_response);

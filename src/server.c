@@ -11,36 +11,12 @@
 #include <pthread.h>
 
 #include "render.h"
+#include "utils.h"
 
 #define TOK_BUF_SIZE 1024
 #define TOK_DELIM " \t\r\n\a"
 
 char *root_path = NULL;
-
-char **split_line(char *line) {
-    int buf_size = TOK_BUF_SIZE, position = 0;
-    char **tokens = malloc(buf_size * sizeof(char *));
-    char *token;
-
-    token = strtok(line, TOK_DELIM);
-    while (token != NULL) {
-        tokens[position] = token;
-        position++;
-
-        if (position >= buf_size) {
-            buf_size += TOK_BUF_SIZE;
-            tokens = realloc(tokens, buf_size * sizeof(char *));
-            if (!tokens) {
-                fprintf(stderr, "allocation error\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        token = strtok(NULL, TOK_DELIM);
-    }
-    tokens[position] = NULL;
-    return tokens;
-}
 
 struct sockaddr_in build_server_addr(char *server_ip, int server_port) {
     struct sockaddr_in server = {0};
@@ -94,10 +70,13 @@ void *handle_client(void *arg) {
     char **args = split_line(buffer);
 
     if (strcmp(args[0], "GET") == 0 && args[1] != NULL) {
-        response = render(root_path);
+
+        char *path = path_browser_to_server(args[1], root_path);
+        response = render(path, root_path);
 
         send(sock_client, response, strlen(response), 0);
         free(response);
+        free(path);
     }
 
     free(args);

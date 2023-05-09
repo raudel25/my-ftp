@@ -9,12 +9,16 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <pthread.h>
+#include <dirent.h>
+#include <unistd.h>
 
 #include "render.h"
 #include "utils.h"
 
 #define TOK_BUF_SIZE 1024
 #define TOK_DELIM " \t\r\n\a"
+
+#define HTTP_NOT_FOUND "HTTP/1.1 404 Not Found\r\n\r\n"
 
 char *root_path = NULL;
 
@@ -63,6 +67,8 @@ void *handle_client(void *arg) {
     int len = sizeof(client);
     int sock_client = accept(sock, (struct sockaddr *) &client, (socklen_t *) &len);
 
+    int not_found = 0;
+
     recv(sock_client, buffer, TOK_BUF_SIZE, 0);
     fflush(0);
     printf("%s", buffer);
@@ -72,12 +78,29 @@ void *handle_client(void *arg) {
     if (strcmp(args[0], "GET") == 0 && args[1] != NULL) {
 
         char *path = path_browser_to_server(args[1], root_path);
-        response = render(path, root_path);
 
-        send(sock_client, response, strlen(response), 0);
-        free(response);
+        DIR *d;
+        d = opendir(path);
+
+        if (d) {
+            response = render(path, root_path);
+
+            send(sock_client, response, strlen(response), 0);
+            free(response);
+        } else {
+            not_found = 1;
+        }
+
         free(path);
+    } else {
+        not_found = 1;
     }
+
+    if (not_found) {
+        response = HTTP_NOT_FOUND;
+        send(sock_client, response, strlen(response), 0);
+    }
+    close(sock_client);
 
     free(args);
 

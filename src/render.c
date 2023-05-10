@@ -10,7 +10,7 @@
 #include "utils.h"
 
 #define MAX_SIZE_BUFFER 4096
-#define HTTP_OK "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
+#define HTTP_HTML "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
 
 char *build_table(char *path, char *root_path) {
     char *html_response = (char *) malloc(MAX_SIZE_BUFFER);
@@ -60,7 +60,7 @@ char *build_table(char *path, char *root_path) {
 char *render(char *path, char *root_path) {
 
     char *html_response = build_table(path, root_path);
-    char *http_header = HTTP_OK;
+    char *http_header = HTTP_HTML;
     char *response = malloc(strlen(http_header) + strlen(html_response) + 1);
 
     strcpy(response, http_header);

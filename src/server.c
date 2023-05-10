@@ -57,6 +57,52 @@ int create_server(int port) {
     return sock1;
 }
 
+int navigate(char *path, int sock_client) {
+    DIR *d;
+    d = opendir(path);
+
+    if (d) {
+        char *response = render(path, root_path);
+
+        send(sock_client, response, strlen(response), 0);
+        free(response);
+
+        return 1;
+    }
+
+    return 0;
+}
+
+int send_file(char *path, int sock_client) {
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL) {
+        return 0;
+    }
+
+    fseek(fp, 0L, SEEK_END);
+    long file_size = ftell(fp);
+    rewind(fp);
+
+    char header[TOK_BUF_SIZE];
+    snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
+                                     "Content-Type: application/octet-stream\r\n"
+                                     "Content-Disposition: attachment; filename=\"%s\"\r\n"
+                                     "Content-Length: %ld\r\n"
+                                     "\r\n", path, file_size);
+
+    send(sock_client, header, strlen(header), 0);
+
+    char buffer[TOK_BUF_SIZE];
+    size_t bytes_read;
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+        send(sock_client, buffer, bytes_read, 0);
+    }
+
+    fclose(fp);
+
+    return 1;
+}
+
 void *handle_client(void *arg) {
     int sock = *(int *) arg;
 
@@ -70,8 +116,6 @@ void *handle_client(void *arg) {
     int not_found = 0;
 
     recv(sock_client, buffer, TOK_BUF_SIZE, 0);
-    fflush(0);
-    printf("%s", buffer);
 
     char **args = split_line(buffer);
 
@@ -79,17 +123,10 @@ void *handle_client(void *arg) {
 
         char *path = path_browser_to_server(args[1], root_path);
 
-        DIR *d;
-        d = opendir(path);
+        int action = navigate(path, sock_client);
+        action = action || send_file(path, sock_client);
 
-        if (d) {
-            response = render(path, root_path);
-
-            send(sock_client, response, strlen(response), 0);
-            free(response);
-        } else {
-            not_found = 1;
-        }
+        if (!action) not_found = 1;
 
         free(path);
     } else {
@@ -100,6 +137,7 @@ void *handle_client(void *arg) {
         response = HTTP_NOT_FOUND;
         send(sock_client, response, strlen(response), 0);
     }
+
     close(sock_client);
 
     free(args);

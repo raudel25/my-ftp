@@ -15,9 +15,9 @@
 #include "render.h"
 #include "utils.h"
 
-#define TOK_BUF_SIZE 1024
+#define MAX_SIZE_BUFFER 1024
 #define TOK_DELIM " \t\r\n\a"
-
+#define ERROR "\033[0;31mmy_ftp\033[0m"
 #define HTTP_NOT_FOUND "HTTP/1.1 404 Not Found\r\n\r\n"
 
 char *root_path = NULL;
@@ -37,7 +37,7 @@ int create_server(int port) {
     sock1 = socket(AF_INET, SOCK_STREAM, 0);
 
     if (sock1 == -1) {
-        printf("Socket creation failed");
+        fprintf(stderr, "%s: socket creation failed\n", ERROR);
         exit(1);
     }
 
@@ -45,12 +45,12 @@ int create_server(int port) {
     server = build_server_addr("localhost", port);
 
     if (bind(sock1, (struct sockaddr *) &server, sizeof(server)) == -1) {
-        printf("Binding error");
+        fprintf(stderr, "%s: binding error\n", ERROR);
         exit(1);
     }
 
     if (listen(sock1, 1) == -1) {
-        printf("Listen failed");
+        fprintf(stderr, "%s: listen failed\n", ERROR);
         exit(1);
     }
 
@@ -69,6 +69,7 @@ int navigate(char *path, int sock_client) {
 
         return 1;
     }
+    closedir(d);
 
     return 0;
 }
@@ -83,7 +84,7 @@ int send_file(char *path, int sock_client) {
     long file_size = ftell(fp);
     rewind(fp);
 
-    char header[TOK_BUF_SIZE];
+    char header[MAX_SIZE_BUFFER];
     snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
                                      "Content-Type: application/octet-stream\r\n"
                                      "Content-Disposition: attachment; filename=\"%s\"\r\n"
@@ -92,7 +93,7 @@ int send_file(char *path, int sock_client) {
 
     send(sock_client, header, strlen(header), 0);
 
-    char buffer[TOK_BUF_SIZE];
+    char buffer[MAX_SIZE_BUFFER];
     size_t bytes_read;
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
         send(sock_client, buffer, bytes_read, 0);
@@ -106,8 +107,7 @@ int send_file(char *path, int sock_client) {
 void *handle_client(void *arg) {
     int sock = *(int *) arg;
 
-    char *response;
-    char buffer[TOK_BUF_SIZE];
+    char buffer[MAX_SIZE_BUFFER];
 
     struct sockaddr_in client;
     int len = sizeof(client);
@@ -115,7 +115,7 @@ void *handle_client(void *arg) {
 
     int not_found = 0;
 
-    recv(sock_client, buffer, TOK_BUF_SIZE, 0);
+    recv(sock_client, buffer, MAX_SIZE_BUFFER, 0);
 
     char **args = split_line(buffer);
 
@@ -134,7 +134,7 @@ void *handle_client(void *arg) {
     }
 
     if (not_found) {
-        response = HTTP_NOT_FOUND;
+        char *response = HTTP_NOT_FOUND;
         send(sock_client, response, strlen(response), 0);
     }
 

@@ -61,7 +61,7 @@ char *render(char *path, char *root_path) {
 
     char *html_response = build_table(path, root_path);
     char *http_header = HTTP_HTML;
-    char *response = malloc(strlen(http_header) + strlen(html_response) + 1);
+    char *response = malloc(MAX_SIZE_BUFFER);
 
     strcpy(response, http_header);
     strcat(response, html_response);

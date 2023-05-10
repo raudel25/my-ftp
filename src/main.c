@@ -5,6 +5,8 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 #include "server.h"
 
@@ -13,21 +15,28 @@
 #define RESET "\033[0m"
 #define ERROR "\033[0;31mmy_ftp\033[0m"
 
-_Noreturn void loop(int port) {
+_Noreturn void loop(int port, char *root_path) {
 
-    int sock1 = create_server(port);
+    int sock = create_server(port);
 
     while (1) {
-        pthread_t thread;
-        pthread_create(&thread, NULL, handle_client, &sock1);
+        struct sockaddr_in client;
+        int len = sizeof(client);
+        int sock_client = accept(sock, (struct sockaddr *) &client, (socklen_t *) &len);
 
-        pthread_join(thread, NULL);
+        struct Client client_s;
+        client_s.sock_client = sock_client;
+        client_s.root_path = (char *) malloc(MAX_SIZE_BUFFER);
+        strcpy(client_s.root_path, root_path);
+
+        pthread_t thread;
+        pthread_create(&thread, NULL, handle_client, &client_s);
     }
 }
 
 int main(int argn, char *argv[]) {
     int port;
-    int ind = 1;
+    char *root_path;
 
     uid_t uid;
 
@@ -35,27 +44,26 @@ int main(int argn, char *argv[]) {
     struct passwd *pw = getpwuid(uid);
 
 
-    if (argv[ind] == NULL) port = 5000;
+    if (argv[1] == NULL) port = 5000;
     else {
         char *p;
-        int q = (int) strtol(argv[ind], &p, 10);
-        puts(argv[ind]);
+        int q = (int) strtol(argv[1], &p, 10);
+
         if (strlen(p) == 0) port = q;
         else {
             fprintf(stderr, "%s: the port is not valid\n", ERROR);
 
             return 0;
         }
-        ind++;
     }
 
-    if (argv[ind] == NULL) {
+    if (argv[1] == NULL || argv[2] == NULL) {
         root_path = pw->pw_dir;
     } else {
         DIR *d;
-        d = opendir(argv[ind]);
+        d = opendir(argv[2]);
 
-        if (d) root_path = argv[ind];
+        if (d) root_path = argv[2];
         else {
             fprintf(stderr, "%s: the path does not exist\n", ERROR);
 
@@ -73,6 +81,6 @@ int main(int argn, char *argv[]) {
     puts(print_path);
     puts(print_url);
 
-    loop(port);
+    loop(port, root_path);
 
 }

@@ -12,13 +12,11 @@
 #define MAX_SIZE_BUFFER 4096
 #define HTTP_HTML "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
 
-char *build_table(char *path, char *root_path) {
+char *build_table(DIR *d, char *path, char *root_path) {
     char *html_response = (char *) malloc(MAX_SIZE_BUFFER);
     strcpy(html_response, "<html><body><table><tr><th>Name</th><th>Size</th></tr>");
 
-    DIR *d;
     struct dirent *dir;
-    d = opendir(path);
 
     while ((dir = readdir(d)) != NULL) {
 
@@ -49,17 +47,15 @@ char *build_table(char *path, char *root_path) {
 
         strcat(html_response, "</th></tr>");
     }
-    closedir(d);
-
 
     strcat(html_response, "</table></body></html>");
 
     return html_response;
 }
 
-char *render(char *path, char *root_path) {
+char *render(DIR *d,char *path, char *root_path) {
 
-    char *html_response = build_table(path, root_path);
+    char *html_response = build_table(d,path, root_path);
     char *http_header = HTTP_HTML;
     char *response = malloc(MAX_SIZE_BUFFER);
 

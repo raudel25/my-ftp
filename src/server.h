@@ -5,7 +5,10 @@
 #ifndef MY_FTP_SERVER_H
 #define MY_FTP_SERVER_H
 
-extern char *root_path;
+struct Client {
+    int sock_client;
+    char *root_path;
+};
 
 int create_server(int port);
 

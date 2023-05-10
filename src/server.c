@@ -10,6 +10,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "render.h"
 #include "utils.h"
@@ -101,6 +102,14 @@ int send_file(char *path, int sock_client) {
             send(sock_client, buffer, bytes_read, 0);
         }
 
+        exit(EXIT_SUCCESS);
+    } else if (pid < 0) {
+        perror(ERROR);
+    } else {
+        int status;
+        do {
+            waitpid(pid, &status, WUNTRACED);
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         fclose(fp);
     }
 

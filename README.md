@@ -38,5 +38,5 @@ make build
 y después ejecutar el ejecutable creado, especificando los valores:
 
 ```
-./build <port> <root>
+./build/my_ftp <port> <root>
 ```

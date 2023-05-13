@@ -81,6 +81,6 @@ int main(int argn, char *argv[]) {
     puts(print_path);
     puts(print_url);
 
-    loop(port, "/mnt/c/Raudel");
+    loop(port, root_path);
 
 }

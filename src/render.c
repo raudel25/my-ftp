@@ -11,10 +11,11 @@
 
 #include "utils.h"
 
-#define MAX_SIZE_BUFFER 10240
+#define MAX_SIZE_BUFFER 1024
 #define HTTP_HTML "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
 
 void build_table_name(char *html_response, char *path, char *root_path, char *file) {
+    strcat(html_response, "<th style=\"text-align: left;\">");
     strcat(html_response, "<a href=\"");
 
     char *redirect = path_server_to_browser(path, root_path);
@@ -28,9 +29,12 @@ void build_table_name(char *html_response, char *path, char *root_path, char *fi
     strcat(html_response, file);
 
     strcat(html_response, "</a>");
+    strcat(html_response, "</th>");
 }
 
 void build_table_size(char *html_response, struct stat st) {
+    strcat(html_response, "<th>");
+
     char aux[64];
     if (!S_ISDIR(st.st_mode)) {
         unsigned long t = st.st_size / 1024;
@@ -49,17 +53,19 @@ void build_table_size(char *html_response, struct stat st) {
         }
 
         sprintf(aux, "%ld", t);
-        strcat(html_response, aux
-        );
-        strcat(html_response, type
-        );
+        strcat(html_response, aux);
+        strcat(html_response, type);
     } else {
         strcat(html_response,
                "-");
     }
+
+    strcat(html_response, "</th>");
 }
 
 void build_table_last_date(char *html_response, struct stat st) {
+    strcat(html_response, "<th>");
+
     struct tm *tm;
 
     tm = localtime(&st.st_mtime);
@@ -69,6 +75,7 @@ void build_table_last_date(char *html_response, struct stat st) {
             tm->tm_hour, tm->tm_min, tm->tm_sec);
 
     strcat(html_response, aux);
+    strcat(html_response, "</th>");
 }
 
 int compare(const void *a, const void *b) {
@@ -77,27 +84,37 @@ int compare(const void *a, const void *b) {
     return strcmp(*ia, *ib);
 }
 
-char *build_table(DIR *d, char *path, char *root_path) {
-    char *html_response = (char *) malloc(MAX_SIZE_BUFFER);
-    strcpy(html_response, "<html><body><table><tr><th>Name</th><th>Size</th><th>Last Date</th></tr>");
-
+char **get_files(DIR *d, int *count) {
     struct dirent *dir;
-    struct stat st;
     int capacity = 32;
-    int count = 0;
+    *count = 0;
     char **files = (char **) malloc(capacity * sizeof(char *));
 
     while ((dir = readdir(d)) != NULL) {
-        if (count == capacity) {
+        if (*count == capacity) {
             capacity *= 2;
             files = realloc(files, capacity * sizeof(char *));
         }
-        files[count] = malloc(strlen(dir->d_name) + 1);
-        strcpy(files[count], dir->d_name);
-        count++;
+        files[*count] = malloc(strlen(dir->d_name) + 1);
+        strcpy(files[*count], dir->d_name);
+        (*count)++;
     }
 
-    qsort(files, count, sizeof(char *), compare);
+    qsort(files, *count, sizeof(char *), compare);
+
+    return files;
+}
+
+char *build_html(DIR *d, char *path, char *root_path) {
+    int ind = 2;
+    char *html_response = (char *) malloc(MAX_SIZE_BUFFER * 2);
+    strcpy(html_response, HTTP_HTML);
+    strcat(html_response, "<html><body><table><tr><th>Name</th><th>Size</th><th>Last Date</th></tr>");
+
+    struct stat st;
+    int count;
+
+    char **files = get_files(d, &count);
 
     for (int i = 0; i < count; i++) {
         char aux_path[strlen(path) + strlen(files[i]) + 1];
@@ -108,19 +125,18 @@ char *build_table(DIR *d, char *path, char *root_path) {
 
         stat(aux_path, &st);
 
-        strcat(html_response, "<tr><th style=\"text-align: left;\">");
+        strcat(html_response, "<tr>");
 
         build_table_name(html_response, path, root_path, files[i]);
-
-        strcat(html_response, "</th><th>");
-
         build_table_size(html_response, st);
-
-        strcat(html_response, "</th><th>");
-
         build_table_last_date(html_response, st);
 
-        strcat(html_response, "</th></tr>");
+        strcat(html_response, "</tr>");
+
+        if (MAX_SIZE_BUFFER * ind - strlen(html_response) < MAX_SIZE_BUFFER) {
+            ind *= 2;
+            html_response = (char *) realloc(html_response, MAX_SIZE_BUFFER * ind);
+        }
     }
 
     strcat(html_response, "</table></body></html>");
@@ -130,14 +146,7 @@ char *build_table(DIR *d, char *path, char *root_path) {
 }
 
 char *render(DIR *d,char *path, char *root_path) {
+    char *html_response = build_html(d, path, root_path);
 
-    char *html_response = build_table(d,path, root_path);
-    char *http_header = HTTP_HTML;
-    char *response = malloc(MAX_SIZE_BUFFER);
-
-    strcpy(response, http_header);
-    strcat(response, html_response);
-    free(html_response);
-
-    return response;
+    return html_response;
 }

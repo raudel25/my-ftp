@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #include "server.h"
 
@@ -35,6 +36,8 @@ _Noreturn void loop(int port, char *root_path) {
 }
 
 int main(int argn, char *argv[]) {
+    signal(SIGPIPE, SIG_IGN);
+
     int port;
     char *root_path;
 

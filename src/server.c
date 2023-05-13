@@ -10,7 +10,10 @@
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/sendfile.h>
 
 #include "render.h"
 #include "utils.h"
@@ -75,43 +78,26 @@ int navigate(char *path, int sock_client, char *root_path) {
 }
 
 int send_file(char *path, int sock_client) {
-    FILE *fp = fopen(path, "rb");
-    if (fp == NULL) {
+    int fd = open(path, O_RDONLY);
+    if (fd == -1) {
         return 0;
     }
 
-    int pid = fork();
+    off_t offset = 0;
+    struct stat stat_buf;
+    fstat(fd, &stat_buf);
 
-    if (pid == 0) {
-        fseek(fp, 0L, SEEK_END);
-        long file_size = ftell(fp);
-        rewind(fp);
+    char header[MAX_SIZE_BUFFER];
+    snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
+                                     "Content-Type: application/octet-stream\r\n"
+                                     "Content-Disposition: attachment; filename=\"%s\"\r\n"
+                                     "Content-Length: %ld\r\n"
+                                     "\r\n", path, stat_buf.st_size);
 
-        char header[MAX_SIZE_BUFFER];
-        snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
-                                         "Content-Type: application/octet-stream\r\n"
-                                         "Content-Disposition: attachment; filename=\"%s\"\r\n"
-                                         "Content-Length: %ld\r\n"
-                                         "\r\n", path, file_size);
+    send(sock_client, header, strlen(header), 0);
+    sendfile(sock_client, fd, &offset, stat_buf.st_size);
 
-        send(sock_client, header, strlen(header), 0);
-
-        char buffer[MAX_SIZE_BUFFER];
-        size_t bytes_read;
-        while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-            send(sock_client, buffer, bytes_read, 0);
-        }
-
-        exit(EXIT_SUCCESS);
-    } else if (pid < 0) {
-        perror(ERROR);
-    } else {
-        int status;
-        do {
-            waitpid(pid, &status, WUNTRACED);
-        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-        fclose(fp);
-    }
+    close(fd);
 
     return 1;
 }

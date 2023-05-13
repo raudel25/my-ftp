@@ -109,7 +109,8 @@ char *build_html(DIR *d, char *path, char *root_path) {
     int ind = 2;
     char *html_response = (char *) malloc(MAX_SIZE_BUFFER * 2);
     strcpy(html_response, HTTP_HTML);
-    strcat(html_response, "<html><body><table><tr><th>Name</th><th>Size</th><th>Last Date</th></tr>");
+    strcat(html_response, "<html><head><title>My FTP</title><meta charset=\"UTF-8\"></head>");
+    strcat(html_response, "<body><table><tr><th>Name</th><th>Size</th><th>Last Date</th></tr>");
 
     struct stat st;
     int count;

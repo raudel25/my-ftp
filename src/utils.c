@@ -9,38 +9,36 @@
 #define MAX_SIZE_BUFFER 1024
 #define TOK_DELIM " \t\r\n\a"
 
-char *spaces(char *path) {
-    int len = (int) strlen(path);
-    char *new_path = (char *) malloc(MAX_SIZE_BUFFER);
-    int j = 0;
+char *url_to_path(char *path) {
+    char *decoded_str;
 
-    for (int i = 0; i < len; i++) {
-        if (i <= len - 3 && path[i] == '%' && path[i + 1] == '2' && path[i + 2] == '0') {
-            new_path[j++] = ' ';
-            i += 2;
-            continue;
-        }
-
-        new_path[j++] = path[i];
+    decoded_str = malloc(strlen(path) + 1);
+    strcpy(decoded_str, path);
+    char *pos = decoded_str;
+    while ((pos = strstr(pos, "%")) != NULL) {
+        char hex[3];
+        strncpy(hex, pos + 1, 2);
+        hex[2] = '\0';
+        *pos = (char) strtol(hex, NULL, 16);
+        memmove(pos + 1, pos + 3, strlen(pos + 3) + 1);
     }
-    new_path[j] = 0;
 
-    return new_path;
+    return decoded_str;
 }
 
 char *path_browser_to_server(char *path, char *root_path) {
-    char *spaces_path = spaces(path);
+    char *url_path = url_to_path(path);
 
-    int len = (int) strlen(spaces_path);
+    int len = (int) strlen(url_path);
     int len_root_path = (int) strlen(root_path);
 
     char *new_path = (char *) malloc(MAX_SIZE_BUFFER);
     strcpy(new_path, root_path);
-    strcat(new_path, spaces_path);
+    strcat(new_path, url_path);
 
     if (new_path[len + len_root_path - 1] == '/') new_path[len + len_root_path - 1] = 0;
 
-    free(spaces_path);
+    free(url_path);
     return new_path;
 }
 

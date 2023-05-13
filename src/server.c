@@ -113,7 +113,7 @@ void *handle_client(void *arg) {
 
     recv(sock_client, buffer, MAX_SIZE_BUFFER, 0);
 
-    char **args = split_line(buffer);
+    char **args = split_line(buffer, TOK_DELIM);
 
     if (args[0] != NULL && strcmp(args[0], "GET") == 0 && args[1] != NULL) {
 

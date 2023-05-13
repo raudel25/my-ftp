@@ -18,12 +18,19 @@ void build_table_name(char *html_response, char *path, char *root_path, char *fi
     strcat(html_response, "<th style=\"text-align: left;\">");
     strcat(html_response, "<a href=\"");
 
-    char *redirect = path_server_to_browser(path, root_path);
-    strcat(html_response, redirect);
+    char *aux = path_server_to_browser(path, root_path);
+    char *redirect = (char *) malloc(strlen(aux) + strlen(file) + 2);
+    strcpy(redirect, aux);
+    strcat(redirect, "/");
+    strcat(redirect, file);
 
-    strcat(html_response, "/");
-    strcat(html_response, file);
+    back_path(redirect);
+    char *url = path_to_url(redirect);
+
+    strcat(html_response, url);
     free(redirect);
+    free(aux);
+    free(url);
 
     strcat(html_response, "\">");
     strcat(html_response, file);

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>My FTP</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .gg-arrow-left {
+            box-sizing: border-box;
+            position: relative;
+            display: block;
+            transform: scale(var(--ggs, 1));
+            width: 22px;
+            height: 22px
+        }
+
+        .gg-arrow-left::after,
+        .gg-arrow-left::before {
+            content: "";
+            display: block;
+            box-sizing: border-box;
+            position: absolute;
+            left: 3px
+        }
+
+        .gg-arrow-left::after {
+            width: 8px;
+            height: 8px;
+            border-bottom: 2px solid;
+            border-left: 2px solid;
+            transform: rotate(45deg);
+            bottom: 7px
+        }
+
+        .gg-arrow-left::before {
+            width: 16px;
+            height: 2px;
+            bottom: 10px;
+            background: currentColor
+        }
+    </style>
+</head>
+
+<body>
+
+    <table id="myTable">
+        <tr>
+            <th onclick="sortTable(0,false)">Name</th>
+            <th class="center" onclick="sortTable(1,false)">Size</th>
+            <th class="center" onclick="sortTable(2,false)">Last Date</th>
+        </tr>
+        <!-- TABLE_HEAR -->
+    </table>
+
+    <script>
+
+        function sortTable(n, onlyAsc) {
+            let table, rows, switching, i, x, y, xComp, yComp, shouldSwitch, dir, switchCount = 0;
+            table = document.getElementById("myTable");
+            switching = true;
+
+            dir = "asc";
+
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+
+                for (i = 2; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                    if (n === 0) {
+                        xComp = x.innerHTML.toLowerCase();
+                        yComp = y.innerHTML.toLowerCase();
+                    } else if (n === 1) {
+                        let xSize = x.innerHTML === "-" ? "-1" : x.innerHTML.substring(0, x.innerHTML.length - 3);
+                        let ySize = y.innerHTML === "-" ? "-1" : y.innerHTML.substring(0, y.innerHTML.length - 3);
+                        xComp = parseInt(xSize);
+                        yComp = parseInt(ySize);
+
+                        if (x.innerHTML !== "-") {
+                            let xType = x.innerHTML.substring(x.innerHTML.length - 2);
+                            if (xType === "MB") xComp *= 1024;
+                            if (xType === "GB") xComp *= (1024 * 1024);
+                        }
+
+                        if (y.innerHTML !== "-") {
+                            let yType = y.innerHTML.substring(y.innerHTML.length - 2);
+                            if (yType === "MB") yComp *= 1024;
+                            if (yType === "GB") yComp *= (1024 * 1024);
+                        }
+                    } else {
+                        xComp = new Date(x.innerHTML);
+                        yComp = new Date(y.innerHTML);
+                    }
+
+                    if (dir === "asc") {
+                        if (xComp > yComp) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir === "desc") {
+                        if (xComp < yComp) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+
+                    switchCount++;
+                } else {
+                    if (!onlyAsc && switchCount === 0 && dir === "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => sortTable(0, true));
+    </script>
+</body>
+
+</html>

@@ -35,19 +35,13 @@ char **split_line(char *line, char *split) {
 }
 
 void back_path(char *path) {
-    int len = (int) strlen(path);
-    if (len >= 3 && path[len - 1] == '.' && path[len - 2] == '.' && path[len - 3] == '/') {
-        int ind = len - 4;
-
-        while (path[ind] != '/') {
-            ind--;
-            if (ind == -1) break;
-        }
-
-        path[ind + 1] = 0;
+    int ind = (int) strlen(path) - 1;
+    while (path[ind] != '/') {
+        ind--;
+        if (ind == -1) break;
     }
 
-    if (len >= 2 && path[len - 1] == '.' && path[len - 2] == '/') path[len - 2] = 0;
+    path[ind + 1] = 0;
 }
 
 char *path_to_url(char *path) {

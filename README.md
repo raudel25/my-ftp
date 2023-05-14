@@ -2,6 +2,20 @@
 
 Este proyecto tiene como objetivo la creación de un `ftp` para `Linux` en `c`.
 
+### Dependencias
+
+El proyecto se encuentra desarrollado en `c 17`, y depende de la biblioteca
+<a href="https://curl.se/libcurl/">libcurl</a>.
+Para instalarla debe seguir los siguientes pasos.
+
+Si está utilizando Ubuntu o Debian, puede instalar la biblioteca libcurl con el siguiente comando en la terminal:
+
+```
+sudo apt-get install libcurl4-openssl-dev
+```
+
+Si está usando otra distribución de Linux puede buscarla en el repositorio de paquetes de dicha distribución.
+
 ### Ejecutar el Proyecto
 
 Para ejecutarlo de contar en su pc con el compilador de `c`, y ejecutar en su

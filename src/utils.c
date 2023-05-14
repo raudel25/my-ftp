@@ -53,7 +53,6 @@ void back_path(char *path) {
 char *path_to_url(char *path) {
     char **args = split_line(path, "/");
 
-
     char *url = (char *) malloc(MAX_SIZE_BUFFER);
     url[0] = 0;
 

@@ -14,10 +14,13 @@
 #define MAX_SIZE_BUFFER 10240
 #define HTTP_HEADER "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
 #define HTML_TABLE_HEAR "<!-- TABLE_HEAR -->"
+#define LINK_STYLE "onmouseover=\"this.style.color='blue'\" onmouseout=\"this.style.color='black'\" style=\"color: black; text-decoration: none;\""
 
-void build_table_name(char *html_response, char *path, char *root_path, char *file) {
+void build_table_name(char *html_response, char *path, char *root_path, char *file, struct stat st) {
     strcat(html_response, "<td>");
-    strcat(html_response, "<a href=\"");
+    strcat(html_response, "<a ");
+    strcat(html_response, LINK_STYLE);
+    strcat(html_response, "href=\"");
 
     char *aux = path_server_to_browser(path, root_path);
     char *redirect = (char *) malloc(strlen(aux) + strlen(file) + 2);
@@ -32,10 +35,14 @@ void build_table_name(char *html_response, char *path, char *root_path, char *fi
     free(aux);
     free(url);
 
-    strcat(html_response, "\">");
+    if (S_ISDIR(st.st_mode)) {
+        strcat(html_response, "\"><span><div class=\"folder\"></div> ");
+    } else {
+        strcat(html_response, "\"><span><div class=\"file\"></div> ");
+    }
     strcat(html_response, file);
 
-    strcat(html_response, "</a>");
+    strcat(html_response, "</span></a>");
     strcat(html_response, "</td>");
 }
 
@@ -49,14 +56,14 @@ void build_table_size(char *html_response, struct stat st) {
 
         if (t > 1024) {
             t /= 1024;
-            type = " MB";
+            type = " mb";
 
             if (t > 1024) {
                 t /= 1024;
-                type = " GB";
+                type = " gb";
             }
         } else {
-            type = " KB";
+            type = " kb";
         }
 
         sprintf(aux, "%ld", t);
@@ -151,7 +158,7 @@ char *build_html(DIR *d, char *path, char *root_path) {
 
         strcat(html_response, "<tr>");
 
-        build_table_name(html_response, path, root_path, dir->d_name);
+        build_table_name(html_response, path, root_path, dir->d_name, st);
         build_table_size(html_response, st);
         build_table_last_date(html_response, st);
 

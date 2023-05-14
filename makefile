@@ -1,3 +1,6 @@
+port ?= 5000
+root ?= $(HOME)
+
 .PHONY: dev
 dev:
 	mkdir -p build && gcc -o build/my_ftp src/*.c -lpthread -lcurl && cd build && ./my_ftp $(port) $(root)

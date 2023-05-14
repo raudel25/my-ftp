@@ -62,6 +62,77 @@
             bottom: 10px;
             background: currentColor
         }
+
+        .file {
+            background: #eee;
+            background: -moz-linear-gradient(top, #ddd 0, #eee 15%, #fff 40%, #fff 70%, #eee 100%);
+            background: -webkit-linear-gradient(top, #ddd 0, #eee 15%, #fff 40%, #fff 70%, #eee 100%);
+            border: 1px solid #ccc;
+            -moz-border-radius: 1px 10px 1px 1px;
+            -webkit-border-radius: 1px 10px 1px 1px;
+            border-radius: 1px 10px 1px 1px;
+            -moz-box-shadow: inset rgba(255, 255, 255, 0.8) 0 1px 1px;
+            -webkit-box-shadow: inset rgba(255, 255, 255, 0.8) 0 1px 1px;
+            box-shadow: inset rgba(255, 255, 255, 0.8) 0 1px 1px;
+            display: inline-block;
+            width: 10px;
+            height: 15px;
+            position: relative;
+            text-indent: -9999em;
+        }
+
+        .file:before {
+            content: '';
+            position: absolute;
+            right: 0;
+            width: 5px;
+            height: 5px;
+            background: #ccc;
+            background: -moz-linear-gradient(45deg, #fff 0, #eee 50%, #ccc 100%);
+            background: -webkit-linear-gradient(45deg, #fff 0, #eee 50%, #ccc 100%);
+            box-shadow: rgba(0, 0, 0, 0.05) -1px 1px 1px, inset white 0 0 1px;
+            border-bottom: 1px solid #ccc;
+            border-left: 1px solid #ccc;
+            -moz-border-radius: 0 10px 0 0;
+            -webkit-border-radius: 0 10px 0 0;
+            border-radius: 0 5px 0 0;
+        }
+
+        .file:after {
+            content: "";
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 40%;
+            margin: 5px 20% 0;
+            background: #ccc;
+            background: -moz-linear-gradient(top, #ccc 0, #ccc 20%, #fff 20%, #fff 40%, #ccc 40%, #ccc 60%, #fff 60%, #fff 80%, #ccc 80%, #ccc 100%);
+            background: -webkit-linear-gradient(top, #ccc 0, #ccc 20%, #fff 20%, #fff 40%, #ccc 40%, #ccc 60%, #fff 60%, #fff 80%, #ccc 80%, #ccc 100%);
+            height: 5px;
+        }
+
+
+        .folder {
+            width: 15px;
+            height: 10px;
+            display: inline-block;
+            margin: auto;
+            position: relative;
+            background-color: #708090;
+            border-radius: 0 1px 1px 1px;
+        }
+
+        .folder:before {
+            content: '';
+            width: 50%;
+            height: 0.2em;
+            border-radius: 0 15px 0 0;
+            background-color: #708090;
+            position: absolute;
+            top: -0.2em;
+            left: 0px;
+        }
     </style>
 </head>
 
@@ -106,14 +177,14 @@
 
                         if (x.innerHTML !== "-") {
                             let xType = x.innerHTML.substring(x.innerHTML.length - 2);
-                            if (xType === "MB") xComp *= 1024;
-                            if (xType === "GB") xComp *= (1024 * 1024);
+                            if (xType === "mb") xComp *= 1024;
+                            if (xType === "gb") xComp *= (1024 * 1024);
                         }
 
                         if (y.innerHTML !== "-") {
                             let yType = y.innerHTML.substring(y.innerHTML.length - 2);
-                            if (yType === "MB") yComp *= 1024;
-                            if (yType === "GB") yComp *= (1024 * 1024);
+                            if (yType === "mb") yComp *= 1024;
+                            if (yType === "mb") yComp *= (1024 * 1024);
                         }
                     } else {
                         xComp = new Date(x.innerHTML);

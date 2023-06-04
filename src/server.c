@@ -44,7 +44,7 @@ int create_server(int port) {
 
     if (sock1 == -1) {
         fprintf(stderr, "%s: socket creation failed\n", ERROR);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     setsockopt(sock1, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -52,12 +52,12 @@ int create_server(int port) {
 
     if (bind(sock1, (struct sockaddr *) &server, sizeof(server)) == -1) {
         fprintf(stderr, "%s: binding error\n", ERROR);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if (listen(sock1, 1) == -1) {
         fprintf(stderr, "%s: listen failed\n", ERROR);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     return sock1;
@@ -71,7 +71,6 @@ int create_server(int port) {
  * @return
  * 1 if was sent a response to the client\n
  * 0 if the directory was not found\n
- * @note The response is sent using the HTTP protocol
  */
 int navigate(char *path, int sock_client, char *root_path) {
     DIR *dir;
@@ -103,7 +102,6 @@ int navigate(char *path, int sock_client, char *root_path) {
  * @param sock_client Socket to the client
  * @return 0 if the file was not found\n
  * 1 if was sent a response to the client
- * @note The file is sent using the HTTP protocol
  */
 int send_file(char *path, int sock_client) {
     int fd = open(path, O_RDONLY);

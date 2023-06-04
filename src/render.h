@@ -5,6 +5,6 @@
 #ifndef MY_FTP_RENDER_H
 #define MY_FTP_RENDER_H
 
-char *render(DIR *d, char *path, char *root_path);
+char *render(DIR *dir, char *path, char *root_path);
 
 #endif //MY_FTP_RENDER_H

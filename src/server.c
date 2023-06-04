@@ -23,6 +23,7 @@
 #define TOK_DELIM " \t\r\n\a"
 #define ERROR "\033[0;31mmy_ftp\033[0m"
 #define HTTP_NOT_FOUND "HTTP/1.1 404 Not Found\r\n\r\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n\r\n"
 
 struct sockaddr_in build_server_addr(char *server_ip, int server_port) {
     struct sockaddr_in server = {0};
@@ -60,19 +61,19 @@ int create_server(int port) {
 }
 
 int navigate(char *path, int sock_client, char *root_path) {
-    DIR *d;
-    d = opendir(path);
+    DIR *dir;
+    dir = opendir(path);
 
-    if (d) {
-        char *response = render(d, path, root_path);
+    if (dir) {
+        char *response = render(dir, path, root_path);
 
         send(sock_client, response, strlen(response), 0);
         free(response);
-        closedir(d);
+        closedir(dir);
 
         return 1;
     }
-    closedir(d);
+    closedir(dir);
 
     return 0;
 }
@@ -109,28 +110,26 @@ void *handle_client(void *arg) {
 
     char buffer[MAX_SIZE_BUFFER];
 
-    int not_found = 0;
-
-    recv(sock_client, buffer, MAX_SIZE_BUFFER, 0);
+    if (recv(sock_client, buffer, MAX_SIZE_BUFFER, 0) == -1) {
+        fprintf(stderr, "%s: recv failed\n", ERROR);
+        exit(1);
+    }
 
     char **args = split_line(buffer, TOK_DELIM);
 
     if (args[0] != NULL && strcmp(args[0], "GET") == 0 && args[1] != NULL) {
-
         char *path = path_browser_to_server(args[1], root_path);
 
         int action = navigate(path, sock_client, root_path);
         action = action || send_file(path, sock_client);
 
-        if (!action) not_found = 1;
-
+        if (!action) {
+            char *response = HTTP_NOT_FOUND;
+            send(sock_client, response, strlen(response), 0);
+        }
         free(path);
     } else {
-        not_found = 1;
-    }
-
-    if (not_found) {
-        char *response = HTTP_NOT_FOUND;
+        char *response = HTTP_BAD_REQUEST;
         send(sock_client, response, strlen(response), 0);
     }
 

@@ -62,7 +62,7 @@ int main(int argn, char *argv[]) {
 
         if (user_port == -1) {
             fprintf(stderr, "%s: the port is not valid\n", ERROR);
-            return 0;
+            exit(EXIT_FAILURE);
         } else {
             port = user_port;
         }
@@ -78,10 +78,10 @@ int main(int argn, char *argv[]) {
             root_path = argv[2];
         } else if (ENOENT == errno) {
             fprintf(stderr, "%s: Directory does not exist\n", ERROR);
-            return 0;
+            exit(EXIT_FAILURE);
         } else {
             fprintf(stderr, "%s: opendir failed\n", ERROR);
-            return 0;
+            exit(EXIT_FAILURE);
         }
 
         closedir(user_dir);

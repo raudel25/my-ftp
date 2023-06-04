@@ -15,4 +15,12 @@ char *path_to_url(char *path);
 
 void back_path(char *path);
 
+/**
+ * Convert a string to a positive integer
+ * @param str
+ * @return
+ * -1 if the string is not a number or the number is not valid
+ */
+int string_to_positive_int(char *str);
+
 #endif //MY_FTP_UTILS_H

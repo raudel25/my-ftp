@@ -111,3 +111,12 @@ char *path_server_to_browser(char *path, char *root_path) {
 
     return new_path;
 }
+
+int string_to_positive_int(char *str) {
+    char *ptr;
+    long ret = strtol(str, &ptr, 10);
+    if (strlen(ptr) != 0 || ret <= 0) {
+        return -1;
+    }
+    return (int)ret;
+}

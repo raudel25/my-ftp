@@ -8,8 +8,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <asm-generic/errno.h>
+#include <errno.h>
 
 #include "server.h"
+#include "utils.h"
 
 #define MAX_SIZE_BUFFER 1024
 #define GREEN "\033[0;32m"
@@ -24,6 +27,11 @@ _Noreturn void loop(int port, char *root_path) {
         struct sockaddr_in client;
         int len = sizeof(client);
         int sock_client = accept(sock, (struct sockaddr *) &client, (socklen_t *) &len);
+
+        if (sock_client == -1) {
+            fprintf(stderr, "%s: accept failed\n", ERROR);
+            exit(1);
+        }
 
         struct Client client_s;
         client_s.sock_client = sock_client;
@@ -46,33 +54,37 @@ int main(int argn, char *argv[]) {
     uid = getuid();
     struct passwd *pw = getpwuid(uid);
 
+    if (argv[1] == NULL) {
+        port = 5000;
+    } else {
+        int user_port;
+        user_port = string_to_positive_int(argv[1]);
 
-    if (argv[1] == NULL) port = 5000;
-    else {
-        char *p;
-        int q = (int) strtol(argv[1], &p, 10);
-
-        if (strlen(p) == 0) port = q;
-        else {
+        if (user_port == -1) {
             fprintf(stderr, "%s: the port is not valid\n", ERROR);
-
-            return 0;
+            exit(EXIT_FAILURE);
+        } else {
+            port = user_port;
         }
     }
 
     if (argv[1] == NULL || argv[2] == NULL) {
         root_path = pw->pw_dir;
     } else {
-        DIR *d;
-        d = opendir(argv[2]);
+        DIR *user_dir;
+        user_dir = opendir(argv[2]);
 
-        if (d) root_path = argv[2];
-        else {
-            fprintf(stderr, "%s: the path does not exist\n", ERROR);
-
-            return 0;
+        if (user_dir) {
+            root_path = argv[2];
+        } else if (ENOENT == errno) {
+            fprintf(stderr, "%s: Directory does not exist\n", ERROR);
+            exit(EXIT_FAILURE);
+        } else {
+            fprintf(stderr, "%s: opendir failed\n", ERROR);
+            exit(EXIT_FAILURE);
         }
-        closedir(d);
+
+        closedir(user_dir);
     }
 
     char print_path[MAX_SIZE_BUFFER];
@@ -85,5 +97,4 @@ int main(int argn, char *argv[]) {
     puts(print_url);
 
     loop(port, root_path);
-
 }

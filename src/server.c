@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/sendfile.h>
+#include <errno.h>
 
 #include "render.h"
 #include "utils.h"
@@ -23,6 +24,9 @@
 #define TOK_DELIM " \t\r\n\a"
 #define ERROR "\033[0;31mmy_ftp\033[0m"
 #define HTTP_NOT_FOUND "HTTP/1.1 404 Not Found\r\n\r\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n\r\n"
+#define HTTP_INTERNAL_ERROR "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+#define HTTP_FORBIDDEN "HTTP/1.1 403 Forbidden\r\n\r\n"
 
 struct sockaddr_in build_server_addr(char *server_ip, int server_port) {
     struct sockaddr_in server = {0};
@@ -40,7 +44,7 @@ int create_server(int port) {
 
     if (sock1 == -1) {
         fprintf(stderr, "%s: socket creation failed\n", ERROR);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     setsockopt(sock1, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -48,35 +52,57 @@ int create_server(int port) {
 
     if (bind(sock1, (struct sockaddr *) &server, sizeof(server)) == -1) {
         fprintf(stderr, "%s: binding error\n", ERROR);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if (listen(sock1, 1) == -1) {
         fprintf(stderr, "%s: listen failed\n", ERROR);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     return sock1;
 }
 
+/**
+ * @brief Send a directory to the client, 403 if the directory is not accessible or 500 if an error occurred
+ * @param path Path to the directory
+ * @param sock_client Socket to the client
+ * @param root_path Path to the root directory
+ * @return
+ * 1 if was sent a response to the client\n
+ * 0 if the directory was not found\n
+ */
 int navigate(char *path, int sock_client, char *root_path) {
-    DIR *d;
-    d = opendir(path);
+    DIR *dir;
+    dir = opendir(path);
+    if (!dir) {
+        if (errno == EACCES) {
+            send(sock_client, HTTP_FORBIDDEN, strlen(HTTP_FORBIDDEN), 0);
+            printf("%s: denied access to %s\n", ERROR, path);
+            return 1;
+        }
+        closedir(dir);
+        return 0;
+    }
 
-    if (d) {
-        char *response = render(d, path, root_path);
-
-        send(sock_client, response, strlen(response), 0);
-        free(response);
-        closedir(d);
-
+    char *response = render(dir, path, root_path);
+    if (send(sock_client, response, strlen(response), 0) == -1) {
+        fprintf(stderr, "%s: send failed\n", ERROR);
+        send(sock_client, HTTP_INTERNAL_ERROR, strlen(HTTP_INTERNAL_ERROR), 0);
         return 1;
     }
-    closedir(d);
-
-    return 0;
+    free(response);
+    closedir(dir);
+    return 1;
 }
 
+/**
+ * @brief Send a file to the client or 500 if an error occurred
+ * @param path Path to the file
+ * @param sock_client Socket to the client
+ * @return 0 if the file was not found\n
+ * 1 if was sent a response to the client
+ */
 int send_file(char *path, int sock_client) {
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
@@ -85,7 +111,10 @@ int send_file(char *path, int sock_client) {
 
     off_t offset = 0;
     struct stat stat_buf;
-    fstat(fd, &stat_buf);
+    if (fstat(fd, &stat_buf) == -1) {
+        fprintf(stderr, "%s: fstat failed\n", ERROR);
+        return 1;
+    }
 
     char header[MAX_SIZE_BUFFER];
     snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
@@ -94,11 +123,13 @@ int send_file(char *path, int sock_client) {
                                      "Content-Length: %ld\r\n"
                                      "\r\n", path, stat_buf.st_size);
 
-    send(sock_client, header, strlen(header), 0);
-    sendfile(sock_client, fd, &offset, stat_buf.st_size);
+    if (send(sock_client, header, strlen(header), 0) == -1
+            || sendfile(sock_client, fd, &offset, stat_buf.st_size) == -1) {
+        fprintf(stderr, "%s: send failed\n", ERROR);
+        send(sock_client, HTTP_INTERNAL_ERROR, strlen(HTTP_INTERNAL_ERROR), 0);
+    }
 
     close(fd);
-
     return 1;
 }
 
@@ -109,28 +140,25 @@ void *handle_client(void *arg) {
 
     char buffer[MAX_SIZE_BUFFER];
 
-    int not_found = 0;
-
-    recv(sock_client, buffer, MAX_SIZE_BUFFER, 0);
+    if (recv(sock_client, buffer, MAX_SIZE_BUFFER, 0) == -1) {
+        fprintf(stderr, "%s: recv failed\n", ERROR);
+        char *response = HTTP_INTERNAL_ERROR;
+        send(sock_client, response, strlen(response), 0);
+        exit(1);
+    }
 
     char **args = split_line(buffer, TOK_DELIM);
 
     if (args[0] != NULL && strcmp(args[0], "GET") == 0 && args[1] != NULL) {
-
         char *path = path_browser_to_server(args[1], root_path);
 
-        int action = navigate(path, sock_client, root_path);
-        action = action || send_file(path, sock_client);
-
-        if (!action) not_found = 1;
-
+        if (!navigate(path, sock_client, root_path) && !send_file(path, sock_client)) {
+            char *response = HTTP_NOT_FOUND;
+            send(sock_client, response, strlen(response), 0);
+        }
         free(path);
     } else {
-        not_found = 1;
-    }
-
-    if (not_found) {
-        char *response = HTTP_NOT_FOUND;
+        char *response = HTTP_BAD_REQUEST;
         send(sock_client, response, strlen(response), 0);
     }
 

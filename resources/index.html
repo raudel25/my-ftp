@@ -184,7 +184,7 @@
                         if (y.innerHTML !== "-") {
                             let yType = y.innerHTML.substring(y.innerHTML.length - 2);
                             if (yType === "mb") yComp *= 1024;
-                            if (yType === "mb") yComp *= (1024 * 1024);
+                            if (yType === "gb") yComp *= (1024 * 1024);
                         }
                     } else {
                         xComp = new Date(x.innerHTML);

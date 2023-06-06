@@ -75,14 +75,11 @@ int create_server(int port) {
 int navigate(char *path, int sock_client, char *root_path) {
     DIR *dir;
     dir = opendir(path);
-    if (!dir) {
-        if (errno == EACCES) {
-            send(sock_client, HTTP_FORBIDDEN, strlen(HTTP_FORBIDDEN), 0);
-            printf("%s: denied access to %s\n", ERROR, path);
-            return 1;
-        }
-        closedir(dir);
-        return 0;
+    if (dir == NULL) {
+        if (errno != EACCES) return 0;
+        send(sock_client, HTTP_FORBIDDEN, strlen(HTTP_FORBIDDEN), 0);
+        printf("%s: denied access to %s\n", ERROR, path);
+        return 1;
     }
 
     char *response = render(dir, path, root_path);
@@ -97,7 +94,7 @@ int navigate(char *path, int sock_client, char *root_path) {
 }
 
 /**
- * @brief Send a file to the client or 500 if an error occurred
+ * @brief Send a file to the client, 403 if the file haven't read permission, 500 if an error occurred
  * @param path Path to the file
  * @param sock_client Socket to the client
  * @return 0 if the file was not found\n
@@ -112,7 +109,14 @@ int send_file(char *path, int sock_client) {
     off_t offset = 0;
     struct stat stat_buf;
     if (fstat(fd, &stat_buf) == -1) {
-        fprintf(stderr, "%s: fstat failed\n", ERROR);
+        fprintf(stderr, "%s: error getting file status\n", ERROR);
+        send(sock_client, HTTP_INTERNAL_ERROR, strlen(HTTP_INTERNAL_ERROR), 0);
+        return 1;
+    }
+
+    if ((stat_buf.st_mode & S_IRUSR) != S_IRUSR) {
+        fprintf(stderr, "%s: file in %s doesn't have read permission\n", ERROR, path);
+        send(sock_client, HTTP_FORBIDDEN, strlen(HTTP_FORBIDDEN), 0);
         return 1;
     }
 
@@ -141,7 +145,7 @@ void *handle_client(void *arg) {
     char buffer[MAX_SIZE_BUFFER];
 
     if (recv(sock_client, buffer, MAX_SIZE_BUFFER, 0) == -1) {
-        fprintf(stderr, "%s: recv failed\n", ERROR);
+        perror(ERROR);
         char *response = HTTP_INTERNAL_ERROR;
         send(sock_client, response, strlen(response), 0);
         exit(1);

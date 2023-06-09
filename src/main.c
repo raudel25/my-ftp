@@ -30,7 +30,7 @@ _Noreturn void loop(int port, char *root_path) {
 
         if (sock_client == -1) {
             fprintf(stderr, "%s: accept failed\n", ERROR);
-            exit(1);
+            continue;
         }
 
         struct Client client_s;
@@ -39,7 +39,11 @@ _Noreturn void loop(int port, char *root_path) {
         strcpy(client_s.root_path, root_path);
 
         pthread_t thread;
-        pthread_create(&thread, NULL, handle_client, &client_s);
+        if (pthread_create(&thread, NULL, handle_client, &client_s) != 0) {
+            fprintf(stderr, "%s: error creating thread\n", ERROR);
+            close(sock_client);
+            continue;
+        }
     }
 }
 
@@ -77,10 +81,10 @@ int main(int argn, char *argv[]) {
         if (user_dir) {
             root_path = argv[2];
         } else if (ENOENT == errno) {
-            fprintf(stderr, "%s: Directory does not exist\n", ERROR);
+            fprintf(stderr, "%s: directory doesn't exist\n", ERROR);
             exit(EXIT_FAILURE);
         } else {
-            fprintf(stderr, "%s: opendir failed\n", ERROR);
+            fprintf(stderr, "%s: error opening directory\n", ERROR);
             exit(EXIT_FAILURE);
         }
 

@@ -37,10 +37,9 @@ char **split_line(char *line, char *split) {
 void back_path(char *path) {
     int ind = (int) strlen(path) - 1;
     while (path[ind] != '/') {
-        ind--;
         if (ind == -1) break;
+        ind--;
     }
-
     path[ind + 1] = 0;
 }
 

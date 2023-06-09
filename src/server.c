@@ -10,7 +10,6 @@
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/sendfile.h>
@@ -64,25 +63,22 @@ int create_server(int port) {
 }
 
 /**
- * @brief Send a directory to the client, 403 if the directory is not accessible or 500 if an error occurred
+ * @brief Send a directory to the client, 403 if the directory is not accessible, 500 if an error occurred
  * @param path Path to the directory
  * @param sock_client Socket to the client
  * @param root_path Path to the root directory
  * @return
- * 1 if was sent a response to the client\n
  * 0 if the directory was not found\n
+ * 1 if was sent a response to the client
  */
 int navigate(char *path, int sock_client, char *root_path) {
     DIR *dir;
     dir = opendir(path);
-    if (!dir) {
-        if (errno == EACCES) {
-            send(sock_client, HTTP_FORBIDDEN, strlen(HTTP_FORBIDDEN), 0);
-            printf("%s: denied access to %s\n", ERROR, path);
-            return 1;
-        }
-        closedir(dir);
-        return 0;
+    if (dir == NULL) {
+        if (errno != EACCES) return 0;
+        send(sock_client, HTTP_FORBIDDEN, strlen(HTTP_FORBIDDEN), 0);
+        printf("%s: denied access to %s\n", ERROR, path);
+        return 1;
     }
 
     char *response = render(dir, path, root_path);
@@ -97,7 +93,7 @@ int navigate(char *path, int sock_client, char *root_path) {
 }
 
 /**
- * @brief Send a file to the client or 500 if an error occurred
+ * @brief Send a file to the client, 403 if the file haven't read permission, 500 if an error occurred
  * @param path Path to the file
  * @param sock_client Socket to the client
  * @return 0 if the file was not found\n
@@ -109,10 +105,18 @@ int send_file(char *path, int sock_client) {
         return 0;
     }
 
-    off_t offset = 0;
     struct stat stat_buf;
     if (fstat(fd, &stat_buf) == -1) {
-        fprintf(stderr, "%s: fstat failed\n", ERROR);
+        fprintf(stderr, "%s: error getting file status\n", ERROR);
+        char *response = HTTP_INTERNAL_ERROR;
+        send(sock_client, response, strlen(response), 0);
+        return 1;
+    }
+
+    if ((stat_buf.st_mode & S_IRUSR) != S_IRUSR) {
+        fprintf(stderr, "%s: file in %s doesn't have read permission\n", ERROR, path);
+        char *response = HTTP_FORBIDDEN;
+        send(sock_client, response, strlen(response), 0);
         return 1;
     }
 
@@ -124,9 +128,10 @@ int send_file(char *path, int sock_client) {
                                      "\r\n", path, stat_buf.st_size);
 
     if (send(sock_client, header, strlen(header), 0) == -1
-            || sendfile(sock_client, fd, &offset, stat_buf.st_size) == -1) {
+            || sendfile(sock_client, fd, 0, stat_buf.st_size) == -1) {
         fprintf(stderr, "%s: send failed\n", ERROR);
-        send(sock_client, HTTP_INTERNAL_ERROR, strlen(HTTP_INTERNAL_ERROR), 0);
+        char *response = HTTP_INTERNAL_ERROR;
+        send(sock_client, response, strlen(response), 0);
     }
 
     close(fd);
@@ -141,16 +146,16 @@ void *handle_client(void *arg) {
     char buffer[MAX_SIZE_BUFFER];
 
     if (recv(sock_client, buffer, MAX_SIZE_BUFFER, 0) == -1) {
-        fprintf(stderr, "%s: recv failed\n", ERROR);
+        perror(ERROR);
         char *response = HTTP_INTERNAL_ERROR;
         send(sock_client, response, strlen(response), 0);
         exit(1);
     }
 
-    char **args = split_line(buffer, TOK_DELIM);
+    char **request = split_line(buffer, TOK_DELIM);
 
-    if (args[0] != NULL && strcmp(args[0], "GET") == 0 && args[1] != NULL) {
-        char *path = path_browser_to_server(args[1], root_path);
+    if (request[0] != NULL && strcmp(request[0], "GET") == 0 && request[1] != NULL) {
+        char *path = path_browser_to_server(request[1], root_path);
 
         if (!navigate(path, sock_client, root_path) && !send_file(path, sock_client)) {
             char *response = HTTP_NOT_FOUND;
@@ -164,7 +169,7 @@ void *handle_client(void *arg) {
 
     close(sock_client);
 
-    free(args);
+    free(request);
     free(client.root_path);
 
     return NULL;

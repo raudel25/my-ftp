@@ -1,7 +1,5 @@
 # my-ftp
 
-Este proyecto tiene como objetivo la creación de un `ftp` para `Linux` en `c`.
-
 ### Dependencias
 
 El proyecto se encuentra desarrollado en `c 17`, y depende de la biblioteca

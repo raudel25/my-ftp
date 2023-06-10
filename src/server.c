@@ -20,6 +20,7 @@
 #include "server.h"
 
 #define MAX_SIZE_BUFFER 1024
+#define CHUNK_SIZE 1024 * 1024
 #define TOK_DELIM " \t\r\n\a"
 #define ERROR "\033[0;31mmy_ftp\033[0m"
 #define HTTP_NOT_FOUND "HTTP/1.1 404 Not Found\r\n\r\n"
@@ -127,11 +128,26 @@ int send_file(char *path, int sock_client) {
                                      "Content-Length: %ld\r\n"
                                      "\r\n", path, stat_buf.st_size);
 
-    if (send(sock_client, header, strlen(header), 0) == -1
-            || sendfile(sock_client, fd, 0, stat_buf.st_size) == -1) {
+    if (send(sock_client, header, strlen(header), 0) == -1) {
         fprintf(stderr, "%s: send failed\n", ERROR);
         char *response = HTTP_INTERNAL_ERROR;
         send(sock_client, response, strlen(response), 0);
+    }
+
+    off_t offset = 0;
+    while (offset < stat_buf.st_size) {
+        size_t chunk_size = CHUNK_SIZE;
+        if (offset + chunk_size > stat_buf.st_size) {
+            chunk_size = stat_buf.st_size - offset;
+        }
+
+        ssize_t sent_bytes = sendfile(sock_client, fd, &offset, chunk_size);
+        if (sent_bytes == -1) {
+            fprintf(stderr, "%s: sendfile failed\n", ERROR);
+            char *response = HTTP_INTERNAL_ERROR;
+            send(sock_client, response, strlen(response), 0);
+            break;
+        }
     }
 
     close(fd);

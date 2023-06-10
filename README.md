@@ -52,3 +52,7 @@ y después ejecutar el ejecutable creado, especificando los valores:
 ```
 ./build/my_ftp <port> <root>
 ```
+
+### Informe 
+
+Puede consultar el informe del proyecto en la <a href="https://github.com/raudel25/my-ftp/wiki">wiki</a> del repositorio.
